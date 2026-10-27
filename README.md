@@ -30,6 +30,10 @@ docker compose up -d   # Redpanda(localhost:9092), 토픽 6개, Console(http://l
 토픽은 `infra/create_topics.sh`만 만든다(자동 생성 꺼짐): `erp|mes|eam` × `.events`(파티션 3)·`.manifest`(파티션 1), 보존 기간 무기한.
 Airflow 3는 LocalExecutor + Postgres이고 로그인 없이 쓴다. `runtime/data/`, `runtime/requests/`는 컨테이너의 `/data`, `/requests`로 마운트된다. 처음 뜰 때 `smoke` DAG로 실행을 확인할 수 있다.
 
+## 만든 것
+
+- 0단계 레포와 로컬 인프라(10/27): compose 하나로 Redpanda·Console·Airflow 3, 토픽 여섯(자동 생성 끔), 원천 `v0.3.0` 계약 사본과 CI의 원천 대조, [ADR-001](docs/adr/001-stack.md)·[ADR-002](docs/adr/002-source-contract-and-topics.md). 빈 볼륨에서 띄워 방출기의 60,588건이 모두 들어가고 `smoke` DAG가 성공, 메모리는 합쳐 약 1.2GB. 회고: 계약 테스트가 사본 안의 일관성만 봐서 손으로 고친 사본도 통과했다. 리뷰에서 "원천과 같은가"를 묻다 알았고, CI가 고정 커밋과 diff하게 고쳤다
+
 ## 개발
 
 ```bash
