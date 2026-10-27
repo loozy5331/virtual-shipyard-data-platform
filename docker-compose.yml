@@ -1,6 +1,32 @@
 # 플랫폼 로컬 인프라(계획 0단계). docker compose up -d
 # 호스트의 원천 방출기는 localhost:9092로 보낸다: uv run python -m emitter --sink kafka
-# 컨테이너끼리는 redpanda:29092, Console은 http://localhost:8081
+# 컨테이너끼리는 redpanda:29092, Console은 http://localhost:8081, Airflow는 http://localhost:8080
+
+# Airflow 3, LocalExecutor + Postgres. 공식 compose에서 Celery·Redis·triggerer를 뺐다.
+# 로그인 없이 모두 관리자(SimpleAuthManager): 노트북 한 대의 개발용이다.
+x-airflow: &airflow
+  image: apache/airflow:3.3.2-python3.12
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: local-dev-only
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./data:/data
+    - ./requests:/requests
+    - airflow-logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-depends
+    postgres:
+      condition: service_healthy
+    airflow-init:
+      condition: service_completed_successfully
+
 services:
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
@@ -45,5 +71,56 @@ services:
       redpanda:
         condition: service_healthy
 
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 10
+
+  airflow-init:
+    <<: *airflow
+    command: ["db", "migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  airflow-apiserver:
+    <<: *airflow
+    command: api-server
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  airflow-dag-processor:
+    <<: *airflow
+    command: dag-processor
+    restart: unless-stopped
+
 volumes:
   redpanda:
+  postgres:
+  airflow-logs:
