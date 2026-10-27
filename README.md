@@ -10,11 +10,12 @@ docker compose 위에서 Kafka(Redpanda) 토픽으로 받고, 같은 토픽을 �
 ## 실행
 
 ```bash
-docker compose up -d   # Redpanda(localhost:9092), 토픽 6개, Console(http://localhost:8081)
+docker compose up -d   # Redpanda(localhost:9092), 토픽 6개, Console(http://localhost:8081), Airflow(http://localhost:8080)
 # 시뮬레이터 레포에서: uv run --extra kafka python -m emitter --sink kafka
 ```
 
 토픽은 `scripts/create_topics.sh`만 만든다(자동 생성 꺼짐): `erp|mes|eam` × `.events`(파티션 3)·`.manifest`(파티션 1), 보존 기간 무기한.
+Airflow 3는 LocalExecutor + Postgres이고 로그인 없이 쓴다. `data/`, `requests/`는 컨테이너의 `/data`, `/requests`로 마운트된다. 처음 뜰 때 `smoke` DAG로 실행을 확인할 수 있다.
 
 ## 개발
 
