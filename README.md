@@ -6,3 +6,13 @@ docker compose 위에서 Kafka(Redpanda) 토픽으로 받고, 같은 토픽을 �
 
 - 계획: [docs/가상 조선소 데이터 플랫폼 단계별 개발 계획.md](docs/가상%20조선소%20데이터%20플랫폼%20단계별%20개발%20계획.md) ([편집용 원본](https://claude.ai/artifact/DvWWpHW7oCEF26bfxkKobW))
 - 원천 쪽 계획: [시뮬레이터 단계별 개발 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/main/docs/가상%20조선소%20시뮬레이터%20단계별%20개발%20계획.md). 플랫폼이 원천에 기대는 일은 플랫폼 계획의 "이웃 레포" 표에 있다
+
+## 개발
+
+```bash
+uv sync              # Python 3.12, 개발 도구(ruff·pytest)
+uv run ruff check .
+uv run pytest
+```
+
+PR은 `develop`으로 보내고, CI(`test`)가 통과하면 자동으로 머지된다.

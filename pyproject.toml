@@ -1,0 +1,26 @@
+[project]
+name = "virtual-shipyard-data-platform"
+version = "0.0.1"
+description = "가상 조선소 시뮬레이터의 이벤트를 받아 마트까지 만드는 데이터 플랫폼"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
