@@ -4,13 +4,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # 계획의 폴더 구조. 빠지면 이후 단계의 경로가 어긋난다.
 FOLDERS = [
-    "ingest",
+    "pipelines/ingest",
+    "pipelines/reconcile",
+    "pipelines/stream",
+    "pipelines/scoreboard",
+    "airflow/dags",
     "dbt",
-    "dags",
-    "reconcile",
-    "stream",
-    "scoreboard",
     "contracts",
+    "infra",
     "docs/adr",
     "tests",
 ]
