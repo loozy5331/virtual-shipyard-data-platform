@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/loozy5331/virtual-shipyard-simulator/schemas/payloads/system.manifest_published.json",
+  "title": "system.manifest_published payload",
+  "description": "출처 시스템의 하루 마감 집계(대사 기준). 마감 전 lookback_days 안에 이벤트를 보낸 개체만(ADR-006)",
+  "type": "object",
+  "properties": {
+    "lookback_days": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "last_seq": {
+      "type": "object",
+      "description": "개체(entity_key) → 이 시스템이 보낸 마지막 seq",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "minProperties": 1
+    }
+  },
+  "required": [
+    "lookback_days",
+    "last_seq"
+  ],
+  "additionalProperties": false
+}

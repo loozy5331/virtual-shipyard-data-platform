@@ -4,7 +4,9 @@ version = "0.0.1"
 description = "가상 조선소 시뮬레이터의 이벤트를 받아 마트까지 만드는 데이터 플랫폼"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "jsonschema>=4.23",
+]
 
 [dependency-groups]
 dev = [
