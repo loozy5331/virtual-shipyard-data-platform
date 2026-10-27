@@ -1,0 +1,5 @@
+# 원천 계약 사본. 손으로 고치지 않는다. 바꿀 때는 원천 태그에서 다시 복사한다(ADR-002)
+# git -C ../virtual-shipyard-simulator archive <tag> schemas | tar -x --strip-components=1 -C contracts
+repo: https://github.com/loozy5331/virtual-shipyard-simulator
+tag: v0.3.0
+commit: 521d8046a8e890e8c6eefb48b1d3182c593475b6
