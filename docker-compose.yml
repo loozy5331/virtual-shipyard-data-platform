@@ -1,0 +1,49 @@
+# 플랫폼 로컬 인프라(계획 0단계). docker compose up -d
+# 호스트의 원천 방출기는 localhost:9092로 보낸다: uv run python -m emitter --sink kafka
+# 컨테이너끼리는 redpanda:29092, Console은 http://localhost:8081
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda
+      - start
+      - --mode=dev-container
+      - --smp=1
+      - --memory=1G
+      - --kafka-addr=internal://0.0.0.0:29092,external://0.0.0.0:9092
+      - --advertise-kafka-addr=internal://redpanda:29092,external://localhost:9092
+    ports:
+      - "9092:9092"
+    volumes:
+      - redpanda:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health", "--exit-when-healthy"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  # 토픽 자동 생성을 끄고 토픽·파티션·보존 기간을 맞춘 뒤 끝난다. 이미 있으면 설정만 다시 맞춘다
+  topics:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    entrypoint: ["/bin/bash", "/scripts/create_topics.sh"]
+    environment:
+      RPK_BROKERS: redpanda:29092
+      RPK_ADMIN_HOSTS: redpanda:9644
+    volumes:
+      - ./scripts/create_topics.sh:/scripts/create_topics.sh:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:v2.7.2
+    environment:
+      KAFKA_BROKERS: redpanda:29092
+    ports:
+      - "8081:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+volumes:
+  redpanda:
