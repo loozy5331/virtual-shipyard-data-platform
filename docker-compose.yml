@@ -16,9 +16,9 @@ x-airflow: &airflow
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
   volumes:
-    - ./dags:/opt/airflow/dags
-    - ./data:/data
-    - ./requests:/requests
+    - ./airflow/dags:/opt/airflow/dags
+    - ./runtime/data:/data
+    - ./runtime/requests:/requests
     - airflow-logs:/opt/airflow/logs
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-depends
@@ -56,7 +56,7 @@ services:
       RPK_BROKERS: redpanda:29092
       RPK_ADMIN_HOSTS: redpanda:9644
     volumes:
-      - ./scripts/create_topics.sh:/scripts/create_topics.sh:ro
+      - ./infra/create_topics.sh:/scripts/create_topics.sh:ro
     depends_on:
       redpanda:
         condition: service_healthy

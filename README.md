@@ -7,6 +7,19 @@ docker compose 위에서 Kafka(Redpanda) 토픽으로 받고, 같은 토픽을 �
 - 계획: [docs/가상 조선소 데이터 플랫폼 단계별 개발 계획.md](docs/가상%20조선소%20데이터%20플랫폼%20단계별%20개발%20계획.md) ([편집용 원본](https://claude.ai/artifact/DvWWpHW7oCEF26bfxkKobW))
 - 원천 쪽 계획: [시뮬레이터 단계별 개발 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/main/docs/가상%20조선소%20시뮬레이터%20단계별%20개발%20계획.md). 플랫폼이 원천에 기대는 일은 플랫폼 계획의 "이웃 레포" 표에 있다
 
+## 구조
+
+```
+pipelines/      Python 코드: ingest(수집) · reconcile(대사) · stream(스트림 뷰) · scoreboard(점수판)
+airflow/dags/   Airflow DAG
+dbt/            dbt-duckdb 프로젝트(silver·gold)
+contracts/      원천 계약 스키마(배치·스트림이 같이 씀)
+infra/          compose가 쓰는 스크립트(토픽 만들기)
+runtime/        컨테이너 마운트(data/, requests/). git에 넣지 않는다
+docs/           계획, adr/
+tests/
+```
+
 ## 실행
 
 ```bash
@@ -14,8 +27,8 @@ docker compose up -d   # Redpanda(localhost:9092), 토픽 6개, Console(http://l
 # 시뮬레이터 레포에서: uv run --extra kafka python -m emitter --sink kafka
 ```
 
-토픽은 `scripts/create_topics.sh`만 만든다(자동 생성 꺼짐): `erp|mes|eam` × `.events`(파티션 3)·`.manifest`(파티션 1), 보존 기간 무기한.
-Airflow 3는 LocalExecutor + Postgres이고 로그인 없이 쓴다. `data/`, `requests/`는 컨테이너의 `/data`, `/requests`로 마운트된다. 처음 뜰 때 `smoke` DAG로 실행을 확인할 수 있다.
+토픽은 `infra/create_topics.sh`만 만든다(자동 생성 꺼짐): `erp|mes|eam` × `.events`(파티션 3)·`.manifest`(파티션 1), 보존 기간 무기한.
+Airflow 3는 LocalExecutor + Postgres이고 로그인 없이 쓴다. `runtime/data/`, `runtime/requests/`는 컨테이너의 `/data`, `/requests`로 마운트된다. 처음 뜰 때 `smoke` DAG로 실행을 확인할 수 있다.
 
 ## 개발
 
