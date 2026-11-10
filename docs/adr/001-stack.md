@@ -19,7 +19,7 @@
    - 로그인은 끈다(SimpleAuthManager, 모두 관리자). 개발용이라 인증 비용을 들이지 않는다.
    - `warehouse.duckdb`는 Airflow만 쓰고, pool 1·`max_active_runs=1`로 한 번에 하나만 돈다.
 4. **개발 도구는 uv(Python 3.12), ruff, pytest**: CI도 같은 명령을 돌린다. 원천 레포와 같은 도구라 오가며 헷갈리지 않는다.
-5. **브로커는 지금 정하지 않는다**: 실시간 요구가 생기는 Phase 4에서 정한다(ADR-003).
+5. **브로커는 지금 정하지 않는다**: 실시간 요구가 생기는 Phase 4에서 정한다(ADR-002).
 
 ## 결과
 
