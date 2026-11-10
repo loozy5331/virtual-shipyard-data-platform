@@ -5,7 +5,7 @@
 결과는 시뮬레이터의 정답 로그와 맞춘 점수판으로 채점한다.
 
 - 계획: [docs/development-plan.md](docs/development-plan.md). Phase 지도와 최종 형태가 있다
-- 원천 쪽 계획: [시뮬레이터 단계별 개발 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/main/docs/가상%20조선소%20시뮬레이터%20단계별%20개발%20계획.md). 플랫폼이 원천에 기대는 일은 플랫폼 계획의 "이웃 레포" 표에 있다
+- 원천 쪽 계획: [시뮬레이터 단계별 개발 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/develop/docs/development-plan.md). 플랫폼이 원천에 기대는 일은 플랫폼 계획의 "이웃 레포" 표에 있다
 
 ## 구조
 

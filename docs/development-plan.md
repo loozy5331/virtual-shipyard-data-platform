@@ -1,6 +1,6 @@
 # 가상 조선소 데이터 플랫폼 개발 계획
 
-2026-11-10 기준(10/27 수립, 11/10 Phase로 다시 짬) · 원천: [virtual-shipyard-simulator](https://github.com/loozy5331/virtual-shipyard-simulator) `v0.5.0`(계약은 `v0.3.0`에 고정)([원천 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/develop/docs/가상%20조선소%20시뮬레이터%20단계별%20개발%20계획.md))
+2026-11-10 기준(10/27 수립, 11/10 Phase로 다시 짬) · 원천: [virtual-shipyard-simulator](https://github.com/loozy5331/virtual-shipyard-simulator) `v0.5.0`(계약은 `v0.3.0`에 고정)([원천 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/develop/docs/development-plan.md))
 
 가상 조선소 시뮬레이터가 내는 노이즈 섞인 이벤트를 받아, 정답과 똑같이 복원한 기록과 OEE·리드타임 마트를 만든다. 파일 착륙 구역으로 받는 작은 배치에서 시작하고, 겪은 문제가 다음 구성 요소를 부를 때마다 Phase를 하나씩 더한다. 11/29에 배치를 공개하고, 12/13에 스트림을 더하고, 12/20에 끝낸다.
 
@@ -44,7 +44,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    sim["시뮬레이터(원천)"] -->|"emitter --out-dir"| landing["착륙 구역<br/>data/landing/dt=…/part-0.jsonl"]
+    sim["시뮬레이터(원천)"] -->|"emitter --out-dir"| landing["착륙 구역<br/>data/landing/dt=…/part-*.jsonl"]
 
     subgraph airflow["Airflow 3 일 단위 DAG (dt마다)"]
         bronze["bronze Parquet<br/>dt마다 덮어씀"] --> silver["silver (dbt-duckdb)<br/>중복 제거 · 72시간 되돌아보기"]
@@ -78,7 +78,7 @@ flowchart LR
 
 | Phase | 기간 | 만드는 것 | 배우는 것 | 끝날 때 보이는 문제 → 다음 Phase |
 | --- | --- | --- | --- | --- |
-| 0. 레포와 로컬 인프라 | 10/27, 11/10 정리 | 레포 뼈대, CI, 계약 사본, compose(Postgres·Airflow 3), ADR-001~003 | 컨테이너 네트워크·볼륨, 계약 고정 | |
+| 0. 레포와 로컬 인프라 | 10/27, 11/10 정리 | 레포 뼈대, CI, 계약 사본, compose(10/27에는 Redpanda도, 11/10부터 Postgres·Airflow 3만), ADR-001~003 | 컨테이너 네트워크·볼륨, 계약 고정 | |
 | 1. MVP 배치 | 11/11–11/18 | 착륙 구역 → bronze → silver(중복 제거, 72시간 되돌아보기) → 가용률 마트, 점수판, 일 단위 DAG, 재실행·백필, 실패·신선도 경보 | 끝까지 관통하는 최소 경로, 멱등 키, 이벤트 시각 처리, 운영 | 중복·늦음은 풀렸지만 **누락 때문에 가용률이 정답과 다르다** |
 | 2. 대사 | 11/19–11/23 | `seq` 빈 번호와 마감 집계로 누락 찾기, 재발행 요청 파일, 재발행분 받기 | 대사, 원천과 계약으로만 일하기 | 가용률 = 정답. 그런데 **지금 설비가 섰는지는 다음 날에야 안다** |
 | 3. 마트 넓히기와 배치 공개 | 11/24–11/29 | OEE, 계획 대비 실적, QCD, 지표 정의 문서, README·`v0.1.0` | 지표 정의를 문서로 합의하기 | (가치를 쌓는 Phase) |
@@ -100,10 +100,10 @@ flowchart LR
 
 ### Phase 0 · 레포와 로컬 인프라
 - [x] 레포 뼈대, uv(Python 3.12)·ruff·pytest CI, develop 자동 머지 (chore/bootstrap) (Claude)
-- [x] compose(Postgres·Airflow 3), 원천 `v0.3.0` 계약 사본과 CI 대조, ADR-001·002 (Claude)
+- [x] compose(Redpanda·Console·토픽 여섯, Postgres·Airflow 3), 원천 `v0.3.0` 계약 사본과 CI 대조, ADR-001·002 (Claude)
 - [x] 11/10 정리: Kafka 쪽 걷어내기, 폴더 이름(`data/`, `scripts/`, `docs/specs/`·`docs/plans/`), ADR-003, 이 계획 (Claude)
 ### Phase 1 · MVP 배치
-- [ ] 착륙 구역의 `dt` 하나 → `data/bronze/dt=…/` Parquet, 같은 `dt`를 다시 돌리면 덮어씀, 줄의 원본·파일·줄 번호를 열로 남김 (feat/bronze) (직접. 시그니처·첫 테스트·5년치 데이터 준비는 Claude)
+- [ ] 착륙 구역의 `dt` 하나(`part-*.jsonl` 전부. 재발행분 `part-replay-*`도 같은 `dt`에 생긴다) → `data/bronze/dt=…/` Parquet, 같은 `dt`를 다시 돌리면 덮어씀, 줄의 원본·파일·줄 번호를 열로 남김 (feat/bronze) (직접. 시그니처·첫 테스트·5년치 데이터 준비는 Claude)
 - [ ] dbt-duckdb `stg_events`(`event_id`마다 가장 이른 도착 하나), 72시간 되돌아보기, 품질 테스트(착수 < 완료), ADR-004 (feat/silver) (직접. dbt 프로젝트 설정은 Claude)
 - [ ] 가용률 마트: 설비 down→up 구간, 작업장 묶음(가공·조립장·도크·선석)별. 같은 매크로를 정답 로그에도 돌림 (feat/mart-availability) (직접)
 - [ ] 점수판: 가용률 오차와 그것을 설명하는 중복·늦음·누락 수, 회고 한 줄 (feat/scoreboard) (계산은 직접, 배선·출력은 Claude)
@@ -114,6 +114,7 @@ flowchart LR
 - [ ] 마감 집계 받기(착륙 구역의 manifest 줄), 개체별 `seq` 빈 번호와 `last_seq`로 끝 번호 누락, 마감 뒤 72시간 기다리기 (feat/reconcile) (직접)
 - [ ] `replay_request.json` 형식의 요청을 `data/requests/`에 쓰기, 착륙 구역으로 돌아온 재발행 받기, 점수판 완전성 0, ADR-006 (feat/replay-request) (직접)
 ### Phase 3 · 마트 넓히기와 배치 공개
+- [ ] 봉투 스키마 검증(`contracts/` 사본), 위반 줄은 격리 표(원본·사유·파일·줄 번호), **훈련**: 깨진 줄 주입 (feat/contract) (직접)
 - [ ] `mart_oee`(설비 × 일), `mart_plan_vs_actual`, `mart_qcd`, 지표 정의를 dbt 문서에 (feat/marts) (직접)
 - [ ] README 실행법·구조·점수판·훈련 기록, `v0.1.0` (docs/gate) (Claude)
 ### Phase 4 · 실시간: Kafka와 스트림
@@ -153,14 +154,14 @@ flowchart LR
 
 ## 이웃 레포
 
-플랫폼은 원천 계약(시뮬레이터 `v0.3.0`의 봉투, `seq`, 마감 집계, 재발행 요청 형식)에만 기댄다. 원천 쪽 할 일은 [시뮬레이터 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/develop/docs/가상%20조선소%20시뮬레이터%20단계별%20개발%20계획.md)에 둔다.
+플랫폼은 원천 계약(시뮬레이터 `v0.3.0`의 봉투, `seq`, 마감 집계, 재발행 요청 형식)에만 기댄다. 원천 쪽 할 일은 [시뮬레이터 계획](https://github.com/loozy5331/virtual-shipyard-simulator/blob/develop/docs/development-plan.md)에 둔다.
 
 | 플랫폼이 쓰는 것 | 레포 | 쓰는 Phase | 상태 |
 | --- | --- | --- | --- |
 | 이벤트 계약, 파일 출력(`--out-dir`), 정답 로그 | 시뮬레이터 | 1부터 | 완료(`v0.3.0`) |
 | 재발행 요청 디렉터리와 재발행 서비스 | 시뮬레이터 | 2 | 완료(`v0.4.0`, 원천 ADR-012) |
 | 재생 속도(`--speed`, `--follow`) | 시뮬레이터 | 1(신선도 훈련), 4 | 완료(`v0.5.0`, 원천 ADR-013) |
-| Kafka 출력(`--sink kafka`)과 재발행을 Kafka로 | 시뮬레이터 | 4 | 완료(`v0.4.0`) |
+| Kafka 출력(`--sink kafka`), 재발행을 Kafka로 | 시뮬레이터 | 4 | 완료(`v0.3.0`, 재발행은 `v0.4.0`) |
 | 블록 입력 양식과 지연 판정 | `shipbuilding-block-scheduler` | 6 | Phase 6 첫 할 일로 확인 |
 | 용접 불량 이벤트(QCD의 Q) | 시뮬레이터 | 선택 | 시뮬레이터 9단계 |
 
@@ -183,14 +184,15 @@ flowchart LR
 
 Phase 1
 - 일 단위 DAG는 무엇을 하루로 보나? `dt`는 가상 날짜라 재생 속도 없이 방출하면 5년치(약 1,826일)가 한꺼번에 생긴다. 가상 날짜마다 DAG run을 하나씩 두면 `max_active_runs=1`에 dbt 시작 비용이 겹쳐 백필 한 번이 몇 시간 걸린다. 시작안: DAG run 하나가 아직 처리하지 않은 닫힌 `dt`를 모두 처리하고, 백필은 `dt` 범위를 인자로 받는다. ADR-005에서 정한다.
-- `dt`가 닫힌 것을 DAG가 어떻게 아나? 원천은 다음 날짜 파일을 열기 전에 앞 파일을 닫는다(원천 ADR-013). 시작안: 다음 `dt` 디렉터리가 보이면 앞 `dt`를 닫힌 것으로 본다. ADR-005에서 정한다.
+- `dt`가 닫힌 것을 DAG가 어떻게 아나? 방출기는 날짜 순서로 쓰고 닫힌 날짜 파일은 다시 쓰지 않는다(원천 `sim/io/writer.py`의 `PartitionedWriter`). 시작안: 다음 `dt` 디렉터리가 보이면 앞 `dt`를 닫힌 것으로 본다. 다만 재발행 서비스는 처리 시각의 `dt`(자정 직전이면 다음 날)에 `part-replay-*`를 만들 수 있어, 이 규칙이 오판할 수 있다. ADR-005에서 같이 정한다.
+- 점수판과 정답 쪽 가용률은 원천의 정답 로그(`../virtual-shipyard-simulator/out/truth`)를 읽는데, compose의 마운트는 `./data:/data` 하나라 Airflow 태스크 안에서는 보이지 않는다. 읽기 전용 마운트를 더할지(`TRUTH_DIR`), `data/truth/`로 복사할지 `feat/scoreboard` 전에 정한다.
 - `warehouse.duckdb`를 DAG가 쓰는 동안 다른 프로세스는 읽기 전용으로도 열 수 없다(DuckDB 파일 잠금). gold와 점수판을 DAG 끝에서 Parquet으로 내보내고 바깥은 그것만 읽게 할지 정한다.
 - 72시간보다 늦게 오는 이벤트가 있나? 있으면 72시간 되돌아보기로는 "늦음 모두 반영"을 지킬 수 없다. silver를 짜기 전에 정답 로그와 착륙 구역으로 `emitted_at` − `occurred_at`의 최댓값을 잰다.
 - 호선 금액과 비용 이벤트가 없어 QCD의 C는 공수(MH)로만 본다(Phase 3). 금액이 필요하면 시뮬레이터 계획에 요청으로 올린다.
 
 Phase 2
 - `seq` 빈 번호와 `last_seq`로 누락 266개를 모두 찾을 수 있나? 개체의 이벤트가 하나도 오지 않으면 빈 번호도 끝 번호도 보이지 않는다. 마감 집계가 개체 목록이나 개체 수를 주는지 원천 ADR-006에서 확인한다.
-- 파일 모드에서 재발행분은 착륙 구역의 어느 파일로 돌아오나? 같은 `dt`의 `part-0.jsonl`에 덧붙으면 bronze의 "`dt`마다 덮어쓴다"와 맞는지 본다.
+- 재발행분은 착륙 구역의 `dt=<처리 날짜>/part-replay-<처리 시각>.jsonl`로 돌아온다(원천 ADR-006). 처리 날짜의 `dt`에 들어가므로, 이미 처리한 `dt`라도 재발행 파일이 생기면 그 `dt`를 다시 돌려야 한다. 그 신호를 무엇으로 줄지 ADR-006에서 정한다.
 
 Phase 4
 - bronze 파일 하나에 메시지를 몇 개 담을까? 파일은 한 파티션의 연속된 오프셋 구간이고, 도착 날짜가 바뀌면 나눈다. 닫는 기준은 N건 또는 T초 중 먼저 오는 쪽(시작안 10,000건·60초)이다. 작은 파일은 silver가 읽을 때 합친다. ADR-007에서 정한다.
