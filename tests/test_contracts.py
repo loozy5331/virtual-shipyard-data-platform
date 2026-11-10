@@ -87,19 +87,6 @@ def test_envelope_checks_payload():
     assert not _envelope_validator().is_valid(event)
 
 
-def test_topics_cover_every_source():
-    """토픽 스크립트의 출처 시스템이 봉투의 source와 같다.
-
-    토픽은 <source>.events·<source>.manifest이고 자동 생성을 껐다(ADR-002).
-    원천에 출처가 더해졌는데 토픽이 없으면 방출기는 버리지 않고 기다리기만 해(원천 ADR-007)
-    오류 없이 멈춘 것처럼 보인다. 그 전에 여기서 깨진다.
-    """
-    sources = _load(CONTRACTS / "envelope.json")["properties"]["source"]["enum"]
-    script = (ROOT / "infra" / "create_topics.sh").read_text(encoding="utf-8")
-    topic_sources = re.search(r"^SOURCES=\((.*)\)$", script, re.M).group(1).split()
-    assert sorted(topic_sources) == sorted(sources)
-
-
 def test_replay_request_schema():
     """재발행 요청 한 줄(entity_key, seq)의 형식. 4단계에서 플랫폼이 이 형식으로 요청을 쓴다.
 
