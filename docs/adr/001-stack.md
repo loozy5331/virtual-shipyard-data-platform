@@ -25,11 +25,11 @@
 
 - 메모리는 노트북 한 대가 한계다. Airflow 컨테이너 넷과 Postgres를 들일 때 재 보고, 모자라면 `standalone` 하나로 줄인다.
 - DuckDB 단일 쓰기 때문에 변환은 직렬로만 돈다. 이 크기에서는 문제가 되지 않고, Phase 6의 성능 측정(전체 재계산 대 증분)에서 실제로 재 본다.
-- 확장 이야기는 "Spark를 몰라서"가 아니라 "이 크기에서 재 보고 고르지 않았다"로 할 수 있어야 한다.
+- Spark를 고르지 않은 근거는 짐작이 아니라 측정이어야 한다. 12/20 뒤 규모 실험이 그 측정이다.
 
 ## Airflow 2가 아니라 3인 까닭과 2와의 차이
 
-Airflow 2는 2026-04-22에 지원이 끝났다(EOL, 마지막 버전 2.11.2). 보안 패치도 버그 수정도 나오지 않는다([지원 버전 표](https://airflow.apache.org/docs/apache-airflow/stable/installation/supported-versions.html)). 다만 아직 2를 운영하는 팀이 많으니, 이 레포가 쓰는 부분의 차이를 적는다.
+Airflow 2는 2026-04-22에 지원이 끝났다(EOL, 마지막 버전 2.11.2). 보안 패치도 버그 수정도 나오지 않는다([지원 버전 표](https://airflow.apache.org/docs/apache-airflow/stable/installation/supported-versions.html)). 다만 자료와 예제는 아직 2 기준이 많으니, 이 레포가 쓰는 부분의 차이를 적는다.
 
 | 주제 | Airflow 2 | Airflow 3 (이 레포) | 근거 |
 | --- | --- | --- | --- |
