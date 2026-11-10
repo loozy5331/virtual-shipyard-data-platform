@@ -98,7 +98,7 @@ flowchart LR
 ## 결정 기록
 
 - [ADR-001 스택](adr/001-stack.md): DuckDB·Parquet·dbt-duckdb, Airflow 3(2와의 차이)
-- [ADR-002 원천 계약 사본](adr/002-source-contract.md): 태그 고정, `feat/silver`에서 들임
+- ADR-002 원천 계약 사본: `feat/silver`에서 사본과 함께 다시 쓴다(태그 고정, 손으로 고치지 않음, 레지스트리 안 씀. 이전 글은 PR #23)
 - [ADR-003 MVP 입구는 파일 착륙 구역](adr/003-file-landing-zone.md)
 - 다음: 004 silver·늦음(Phase 1), 005 운영·백필(Phase 1), 006 대사(Phase 2), 007 Kafka 입구(Phase 4), 008 스트림(Phase 4)
 
