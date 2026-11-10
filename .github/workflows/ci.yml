@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: uv sync
+      # job 이름 test는 develop 보호 규칙이 요구하는 check라 지금은 lint만 돌아도 그대로 둔다
+      - name: Lint
+        run: uv run ruff check .

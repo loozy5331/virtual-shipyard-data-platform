@@ -1,0 +1,44 @@
+# ADR-001 스택
+
+- 상태: 확정
+- 날짜: 2026-10-27, 2026-11-10 다시 씀
+
+## 맥락
+
+플랫폼은 노트북 한 대에서 돈다. 원천 5년 실행(시드 0)의 정답 이벤트는 55,803개이고, 노이즈를 더해도 수만 건이다. 하루 4시간으로 12/20까지 끝내야 해서, 띄우고 고칠 구성 요소는 적을수록 좋다. 그래도 저장·변환·운영은 실제 도구로 연습하고 싶다.
+
+## 결정
+
+1. **저장과 변환은 Parquet + DuckDB + dbt-duckdb**
+   - bronze는 Parquet 파일, silver·gold는 `data/warehouse.duckdb` 하나에 dbt로 만든다.
+   - DuckDB 파일마다 쓰는 쪽은 하나다. DuckDB는 한 파일에 쓰는 프로세스가 하나뿐이라, 쓰는 쪽을 나누는 것이 곧 동시성 규칙이다.
+2. **Spark는 쓰지 않는다**: 수만 건은 DuckDB 한 프로세스가 메모리 안에서 다루는 크기다. Spark는 JVM과 클러스터 설정 비용이 들고, 이 크기에서는 배울 것(파티션·셔플)보다 기다리는 시간이 길다. 분산 처리가 필요한 크기는 12/20 뒤 규모 실험에서 재 보고 다시 정한다.
+3. **오케스트레이터는 Airflow 3, LocalExecutor + Postgres, docker compose로 띄운다**(Phase 1 `feat/dag`에서 들인다)
+   - api-server·scheduler·dag-processor만 둔다. Celery 워커·Redis·triggerer는 쓰지 않는다.
+   - 메타 DB는 Postgres다. Airflow가 SQLite를 시험용으로만 권하고, 태스크가 함께 돌 때 메타 DB 쓰기가 겹치기 때문이다.
+   - 로그인은 끈다(SimpleAuthManager, 모두 관리자). 개발용이라 인증 비용을 들이지 않는다.
+   - `warehouse.duckdb`는 Airflow만 쓰고, pool 1·`max_active_runs=1`로 한 번에 하나만 돈다.
+4. **개발 도구는 uv(Python 3.12), ruff, pytest**: CI도 같은 명령을 돌린다. 원천 레포와 같은 도구라 오가며 헷갈리지 않는다.
+5. **브로커는 지금 정하지 않는다**: 실시간 요구가 생기는 Phase 4에서 정한다(ADR-002).
+
+## 결과
+
+- 메모리는 노트북 한 대가 한계다. Airflow 컨테이너 넷과 Postgres를 들일 때 재 보고, 모자라면 `standalone` 하나로 줄인다.
+- DuckDB 단일 쓰기 때문에 변환은 직렬로만 돈다. 이 크기에서는 문제가 되지 않고, Phase 6의 성능 측정(전체 재계산 대 증분)에서 실제로 재 본다.
+- 확장 이야기는 "Spark를 몰라서"가 아니라 "이 크기에서 재 보고 고르지 않았다"로 할 수 있어야 한다.
+
+## Airflow 2가 아니라 3인 까닭과 2와의 차이
+
+Airflow 2는 2026-04-22에 지원이 끝났다(EOL, 마지막 버전 2.11.2). 보안 패치도 버그 수정도 나오지 않는다([지원 버전 표](https://airflow.apache.org/docs/apache-airflow/stable/installation/supported-versions.html)). 다만 아직 2를 운영하는 팀이 많으니, 이 레포가 쓰는 부분의 차이를 적는다.
+
+| 주제 | Airflow 2 | Airflow 3 (이 레포) | 근거 |
+| --- | --- | --- | --- |
+| 데이터 기반 스케줄 | `airflow.datasets.Dataset` | `airflow.sdk.Asset` | [업그레이드 가이드: Key Import Updates](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html#key-import-updates) |
+| DAG 작성 import | `airflow.models.dag.DAG`, `airflow.decorators.task` | `airflow.sdk.DAG`, `airflow.sdk.task`. 옛 경로는 deprecated | 같은 곳 |
+| 백필 | `airflow dags backfill --start-date … --end-date … <dag_id>`, 따로 띄우는 명령줄 작업 | `airflow backfill create`. 스케줄러가 맡고 일반 DAG run처럼 추적한다. UI·REST API로도 만든다 | [2.11 DAG Runs: Backfill](https://airflow.apache.org/docs/apache-airflow/2.11.0/core-concepts/dag-run.html#backfill), [3 Backfill](https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/backfill.html), [3.0.0 릴리스 노트: AIP-78](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html#scheduler-managed-backfills-aip-78) |
+| 웹과 DAG 파싱 | `webserver` | `api-server`(UI와 REST API). `dag-processor`를 따로 띄워야 한다(로컬에서도) | [업그레이드 가이드: Step 7](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html#step-7-changes-to-your-startup-scripts) |
+| 태스크와 메타 DB | 태스크 코드가 DB 세션·모델을 직접 쓸 수 있다 | 직접 쓸 수 없고 Task Execution API로만 붙는다 | [업그레이드 가이드: Database access restrictions](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html#database-access-restrictions) |
+| 실행 날짜 | context의 `execution_date` | `execution_date`가 없어지고 `logical_date`를 쓴다. 수동 실행의 data interval을 `logical_date`와 같다고 가정하지 않는다 | [업그레이드 가이드: Breaking changes](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html#breaking-changes), [Manual Dag runs and logical date](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html#manual-dag-runs-and-logical-date) |
+| 기본 연산자 | `BashOperator`, `PythonOperator` 등이 코어에 있다 | `apache-airflow-providers-standard`로 나뉘었다. `airflow.providers.standard`에서 가져온다 | [업그레이드 가이드: Step 4](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html#step-4-install-the-standard-provider) |
+
+근거는 2026-11-10에 연 공식 문서(3.x 문서, 2.11.0 문서)다. `feat/dag`에서 쓰는 이미지 버전으로 다시 확인한다.
