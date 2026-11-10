@@ -68,7 +68,7 @@ flowchart LR
 
 할 일 하나 ≈ 하루. 괄호는 브랜치, "들임"은 그 할 일과 함께 레포에 들어오는 것이다.
 
-- [ ] `dt` 하나의 `part-*.jsonl` 전부 → `data/bronze/dt=…/` Parquet, 다시 돌리면 덮어씀, 원본 줄·파일·줄 번호를 열로. 들임: `pipelines/ingest/`, pytest (feat/bronze) (직접. 시그니처·첫 테스트·데이터 준비는 Claude)
+- [ ] `dt` 하나의 `part-*.jsonl` 전부 → `data/bronze/dt=…/` Parquet, 다시 돌리면 덮어씀, 원본 줄·파일·줄 번호를 열로. 들임: `pipelines/ingest/`, pytest, gitignore의 `data/`·`.pytest_cache/` (feat/bronze) (직접. 시그니처·첫 테스트·데이터 준비는 Claude)
 - [ ] `stg_events`(`event_id`마다 가장 이른 도착), 72시간 되돌아보기, 품질 테스트, silver·늦음 ADR. 들임: `dbt/`, `contracts/`와 CI 대조, 계약 사본 ADR, silver 열 ↔ 계약 테스트 (feat/silver) (직접)
 - [ ] 가용률 마트: 설비 down→up, 작업장 묶음별. 같은 매크로를 정답 로그에도 (feat/mart-availability) (직접)
 - [ ] 점수판: 가용률 오차 + 중복·늦음·누락 수, 회고 한 줄. 들임: `pipelines/scoreboard/` (feat/scoreboard) (계산은 직접)

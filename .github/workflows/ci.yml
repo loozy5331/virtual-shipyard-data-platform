@@ -13,7 +13,6 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Install
         run: uv sync
-      # 테스트는 첫 테스트가 생기는 feat/bronze에서, 계약 대조는 계약 사본이 들어오는 feat/silver에서 더한다.
-      # job 이름 test는 develop 보호 규칙이 요구하는 check라 그대로 둔다
+      # job 이름 test는 develop 보호 규칙이 요구하는 check라 지금은 lint만 돌아도 그대로 둔다
       - name: Lint
         run: uv run ruff check .
