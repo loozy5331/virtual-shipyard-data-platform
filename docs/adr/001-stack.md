@@ -1,7 +1,9 @@
 # ADR-001 스택
 
-- 상태: 확정, 일부 대체(ADR-003: 2. 브로커는 Phase 4에서 다시 정한다)
+- 상태: 확정, 일부 바뀜(2026-11-10, ADR-003)
 - 날짜: 2026-10-27
+
+> **2026-11-10에 바뀐 것**(ADR-003): "처음부터 실제 모양으로"를 버리고 필요할 때 들이기로 했다. 브로커(결정 2)와 소비자는 Phase 4로 미룬다. compose와 Airflow(결정 1·3)는 Phase 1 `feat/dag`에서 들이고, 마운트는 `data/`(`/data`) 하나로 한다. 아래 본문의 "N단계"는 옛 계획의 번호이고, 그 밖의 결정(4~6)은 그대로다.
 
 ## 맥락
 
@@ -11,9 +13,9 @@
 
 ## 결정
 
-1. **실행은 docker compose 하나**: `docker compose up -d`로 브로커, 콘솔, 오케스트레이터, 소비자가 함께 뜬다. 컨테이너끼리는 서비스 이름(`redpanda:29092`)으로, 호스트는 `localhost`로 붙는다. 컨테이너가 쓰는 데이터는 `runtime/data/`(`/data`), 재발행 요청은 `runtime/requests/`(`/requests`)에 마운트한다. (2026-11-10, ADR-003: 브로커·콘솔·소비자는 Phase 4로 미룸. 마운트는 `data/`(`/data`) 하나로 바꾸고, 재발행 요청 폴더는 Phase 2에서 만든다. 같은 날 compose 자체도 비우고, Postgres·Airflow와 함께 Phase 1 `feat/dag`에서 다시 들이기로 했다)
-2. **브로커는 Redpanda**: Kafka API를 그대로 쓰면서 바이너리 하나로 뜨고, 따로 띄울 컨트롤러(ZooKeeper·KRaft)가 없다. 단일 노드(`--smp=1`, `--memory=1G`), 복제 1이다. 토픽을 보는 화면은 Redpanda Console이다. 클라이언트 코드는 Kafka 클라이언트라 브로커를 Kafka로 바꿔도 그대로 쓴다. (Phase 4로 미룸, ADR-003)
-3. **오케스트레이터는 Airflow 3, LocalExecutor + Postgres**: 공식 compose에서 Celery 워커·Redis·triggerer를 빼고 api-server·scheduler·dag-processor만 둔다(Phase 1 `feat/dag`에서 들인다, 2026-11-10). 메타 DB는 Postgres다. Airflow가 SQLite를 시험용으로만 권하고, 태스크가 함께 돌 때 메타 DB 쓰기가 겹치기 때문이다. 로그인은 끈다(SimpleAuthManager, 모두 관리자). 개발용이라 인증 비용을 들이지 않는다.
+1. **실행은 docker compose 하나**: `docker compose up -d`로 브로커, 콘솔, 오케스트레이터, 소비자가 함께 뜬다. 컨테이너끼리는 서비스 이름(`redpanda:29092`)으로, 호스트는 `localhost`로 붙는다. 컨테이너가 쓰는 데이터는 `runtime/data/`(`/data`), 재발행 요청은 `runtime/requests/`(`/requests`)에 마운트한다.
+2. **브로커는 Redpanda**: Kafka API를 그대로 쓰면서 바이너리 하나로 뜨고, 따로 띄울 컨트롤러(ZooKeeper·KRaft)가 없다. 단일 노드(`--smp=1`, `--memory=1G`), 복제 1이다. 토픽을 보는 화면은 Redpanda Console이다. 클라이언트 코드는 Kafka 클라이언트라 브로커를 Kafka로 바꿔도 그대로 쓴다.
+3. **오케스트레이터는 Airflow 3, LocalExecutor + Postgres**: 공식 compose에서 Celery 워커·Redis·triggerer를 빼고 api-server·scheduler·dag-processor만 둔다. 메타 DB는 Postgres다. Airflow가 SQLite를 시험용으로만 권하고, 태스크가 함께 돌 때 메타 DB 쓰기가 겹치기 때문이다. 로그인은 끈다(SimpleAuthManager, 모두 관리자). 개발용이라 인증 비용을 들이지 않는다.
 4. **저장과 변환은 Parquet + DuckDB + dbt-duckdb**
    - bronze는 Parquet 파일이다. 수집 소비자만 쓴다.
    - silver·gold는 `warehouse.duckdb` 하나에 dbt로 만든다. Airflow만 쓰고, 동시에 하나만 돌도록 pool 1·`max_active_runs=1`로 막는다(5단계).
@@ -24,9 +26,9 @@
 
 ## 결과
 
-- 처음부터 실제 모양으로 돌린다. 소비자 그룹, 오프셋 커밋, 리밸런스, DAG 재실행·백필을 진짜 도구로 연습한다. (2026-11-10, ADR-003: "처음부터"는 버렸다. 소비자 그룹·오프셋·리밸런스는 Phase 4에서, DAG 재실행·백필은 Phase 1에서 연습한다)
-- 노트북 한 대의 메모리가 한계다. Airflow 컨테이너 넷과 Redpanda·Postgres가 같이 떠야 한다(Redpanda는 Phase 4로 미룸, ADR-003). 0단계 완료 확인 때 메모리를 재고, 모자라면 Airflow를 `standalone` 컨테이너 하나로 줄인다.
-- (Phase 4로 미룸, ADR-003) 단일 브로커·복제 1이라 브로커 장애는 "브로커 재시작" 훈련까지만 다룬다. 복제와 리더 선출은 다루지 않는다.
+- 처음부터 실제 모양으로 돌린다. 소비자 그룹, 오프셋 커밋, 리밸런스, DAG 재실행·백필을 진짜 도구로 연습한다.
+- 노트북 한 대의 메모리가 한계다. Airflow 컨테이너 넷과 Redpanda·Postgres가 같이 떠야 한다. 0단계 완료 확인 때 메모리를 재고, 모자라면 Airflow를 `standalone` 컨테이너 하나로 줄인다.
+- 단일 브로커·복제 1이라 브로커 장애는 "브로커 재시작" 훈련까지만 다룬다. 복제와 리더 선출은 다루지 않는다.
 - DuckDB 단일 쓰기 때문에 변환은 직렬로만 돈다. 이 크기에서는 문제가 되지 않고, 11단계의 성능 측정(전체 재계산 대 증분)에서 실제로 재 본다.
 - 확장 이야기는 "Spark를 몰라서"가 아니라 "이 크기에서 재 보고 고르지 않았다"로 할 수 있어야 한다. 그래서 규모 실험을 선택 과제로 남겨 둔다.
 
