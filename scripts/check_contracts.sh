@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # contracts/가 원천의 고정 커밋(contracts/VERSION)의 schemas/와 같은지 본다(ADR-002).
-# 다르면 diff를 보이고 실패한다. CI와 로컬에서 같이 쓴다: bash infra/check_contracts.sh
+# 다르면 diff를 보이고 실패한다. CI와 로컬에서 같이 쓴다: bash scripts/check_contracts.sh
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)

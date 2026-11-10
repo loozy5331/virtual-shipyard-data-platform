@@ -16,8 +16,7 @@ x-airflow: &airflow
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
   volumes:
     - ./airflow/dags:/opt/airflow/dags
-    - ./runtime/data:/data
-    - ./runtime/requests:/requests
+    - ./data:/data
     - airflow-logs:/opt/airflow/logs
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on: &airflow-depends

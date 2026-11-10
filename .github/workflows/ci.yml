@@ -18,4 +18,4 @@ jobs:
       - name: Test
         run: uv run pytest
       - name: Contracts = source
-        run: bash infra/check_contracts.sh
+        run: bash scripts/check_contracts.sh

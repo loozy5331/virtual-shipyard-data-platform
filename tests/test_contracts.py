@@ -1,6 +1,6 @@
 """원천 계약 사본(contracts/)을 지키는 테스트(ADR-002).
 
-사본이 원천 태그와 같은지는 CI의 infra/check_contracts.sh가 본다. 여기서는
+사본이 원천 태그와 같은지는 CI의 scripts/check_contracts.sh가 본다. 여기서는
 사본이 고정한 버전인지, 사본 안에서 앞뒤가 맞는지, 플랫폼의 토픽과 맞는지를 본다.
 실제로 온 메시지의 검증은 3단계(feat/contract)에서 이 사본으로 한다.
 """
