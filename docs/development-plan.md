@@ -105,4 +105,4 @@ flowchart LR
 
 - 원천은 `v0.5.0`까지 나와 기다릴 것이 없다(파일·Kafka 출력, 재발행 서비스, 재생 속도). 블록 스케줄러 입력 양식은 Phase 6에서 확인한다.
 - 시뮬레이터 레포: ADR-005 노이즈, ADR-006 마감 집계·재발행, ADR-007 경계, ADR-010 설비 고장, ADR-011 자재, ADR-013 재생 속도
-- [시뮬레이터 도메인 모델 (초안)](https://claude.ai/artifact/T4ebwv74rLvAjNBJfzn43p), [구직 실행 로드맵](https://claude.ai/artifact/ELB4AwJNmtya8ebpVREN2H)(이 문서의 Phase와는 다른 Phase 1~3)
+- [시뮬레이터 도메인 모델 (초안)](https://claude.ai/artifact/T4ebwv74rLvAjNBJfzn43p)
