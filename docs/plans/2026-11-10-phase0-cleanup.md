@@ -1,5 +1,7 @@
 # Phase 0 정리 Implementation Plan
 
+> **11/10 뒤에 바뀜**: 이 계획(Task 1~3, PR #17~19)을 마친 뒤 범위를 넓혀, compose·Airflow·smoke DAG·빈 폴더·계약 사본·테스트도 지웠다(`chore/fresh-start`). 기준은 "Phase마다 반드시 필요한 파일만, 처음 쓰는 할 일과 함께 들인다"다. Task 4(계획·README)는 그 기준으로 다시 썼다.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 레포에서 Kafka 쪽과 앞 Phase의 폴더를 걷어내고, 폴더 이름과 ADR·계획·README를 Phase 1(파일 입구 MVP) 기준으로 맞춘다.

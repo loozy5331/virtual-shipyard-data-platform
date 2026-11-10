@@ -24,13 +24,14 @@
    - 그때 입구가 파일과 Kafka 둘이 되니, 배치 입구도 Kafka로 옮겨 하나로 합친다. 토픽·키·파티션·보존 기간도 그때 새 ADR로 다시 쓴다.
 4. **계약 사본은 ADR-002의 결정 7을 그대로 잇는다**
    - `contracts/`는 원천 `v0.3.0`의 `schemas/`를 고정한 사본이다. 손으로 고치지 않는다.
-   - CI가 `scripts/check_contracts.sh`로 원천과 diff한다.
+   - CI가 대조 스크립트(`scripts/check_contracts.sh`)로 원천과 diff한다.
+   - 사본과 대조 스크립트는 처음 쓰는 할 일인 Phase 1 `feat/silver`에서 레포에 들인다(그때의 원천 태그에서 복사). bronze는 줄을 그대로 담기만 해서 사본이 필요 없다(schema on read).
    - 스키마 레지스트리를 쓰지 않는 까닭도 ADR-002와 같다.
    - 실제로 온 줄을 이 사본으로 검증하고 위반은 격리 표로 보내는 일(ADR-002 결정 7의 약속)은 Phase 3(`feat/contract`)에서 한다. 그때까지는 silver가 모르는 형식의 줄에서 실패한다.
 
 ## 결과
 
-- compose에는 Postgres와 Airflow 3만 뜬다. 마운트는 `./data:/data` 하나다.
+- compose는 Phase 1 `feat/dag`에서 Postgres와 Airflow 3만으로 다시 들인다. 마운트는 `./data:/data` 하나다. 그 전의 할 일은 호스트에서 `uv run`으로 돌린다.
 - 오프셋 관리, 수동 커밋, 리밸런스, 소비자 강제 종료·브로커 재시작 훈련은 Phase 4로 간다.
 - Phase 4에서 Redpanda는 git 이력(PR #2의 compose와 `infra/create_topics.sh`)에서 되살린다. 그때 폴더는 `scripts/`로 둔다.
 - 재생 속도 없이 방출하면 5년치 파일이 한꺼번에 생긴다. Phase 1의 신선도 경보는 시뮬레이터의 `--speed`(원천 ADR-013)나 방출을 멈췄다 다시 보내는 방법으로 훈련한다.

@@ -7,7 +7,8 @@
 **진행 상황**
 - Phase 0 완료(10/27): 레포 뼈대, CI, 계약 사본, compose.
 - 11/10 다시 짬: 0단계가 처음부터 최종 형태(Redpanda, 토픽 여섯)로 깔려 MVP가 없었고, Kafka를 들인 까닭을 겪은 문제로 설명할 수 없었다. 입구를 파일로 되돌리고 계획을 Phase 0~6으로 다시 짰다([설계](specs/2026-11-10-phased-replan-design.md), [ADR-003](adr/003-file-landing-zone.md)).
-- 다음: Phase 1 MVP 배치(11/11–11/18).
+- 11/10 비움: "Phase마다 반드시 필요한 파일만, 처음 쓰는 할 일과 함께 들인다"로 정하고, compose·Airflow·smoke DAG·빈 폴더·계약 사본·테스트를 지웠다. 레포에는 문서, 개발 도구 설정, CI(lint)만 남았다.
+- 다음: Phase 1 MVP 배치(11/11–11/18)의 첫 할 일 `feat/bronze`.
 
 이 문서의 Phase는 플랫폼의 개발 단계다. [구직 로드맵](https://claude.ai/artifact/ELB4AwJNmtya8ebpVREN2H)의 Phase 1~3과는 다르다.
 
@@ -40,7 +41,11 @@ flowchart LR
 
 입구는 Kafka 하나다. 배치가 정답과 같은 기록을, 스트림이 지금 상태를 맡는다. 둘은 같은 토픽을 다른 소비자 그룹으로 받는다.
 
-## 지금: Phase 1의 모습
+## 지금, 그리고 Phase 1이 끝났을 때
+
+**지금**(11/10): 레포에는 문서(`docs/`), 개발 도구 설정(`pyproject.toml`, uv, ruff), CI(lint)만 있다. 코드, compose, 계약 사본은 아직 없다.
+
+**Phase 1이 끝났을 때**:
 
 ```mermaid
 flowchart LR
@@ -58,15 +63,16 @@ flowchart LR
     classDef default rx:10,ry:10
 ```
 
-- compose에는 Postgres와 Airflow 3(LocalExecutor)만 뜬다. 마운트는 `./data:/data` 하나다.
-- 저장은 Parquet(bronze)과 `data/warehouse.duckdb`(silver·gold)다. `warehouse.duckdb`는 Airflow만 쓴다(pool 1, `max_active_runs=1`).
+- `feat/bronze`~`feat/scoreboard`는 호스트에서 `uv run`으로 끝까지 돌린다. 매일 손으로 돌리고 재실행·백필을 관리하기 번거로워지는 것이 `feat/dag`에서 compose와 Airflow 3(LocalExecutor, Postgres)을 들이는 까닭이다. 마운트는 `./data:/data`.
+- 저장은 Parquet(bronze)과 `data/warehouse.duckdb`(silver·gold)다. `feat/dag` 뒤로 `warehouse.duckdb`는 Airflow만 쓴다(pool 1, `max_active_runs=1`).
 - 채점용으로 원천의 정답 로그(`out/truth`)를 읽기만 한다. 파이프라인은 쓰지 않고 점수판만 읽는다.
 
 ## 원칙
 
 - **정답으로 채점한다**: 점수판이 원천의 정답 로그와 결과를 맞춘다. Phase의 완료 기준은 점수판의 칸이다.
 - **같은 입력이면 같은 결과**: 같은 `dt`는 같은 bronze로, 같은 `event_id`는 한 줄로. 재실행과 백필이 결과를 바꾸지 않는다.
-- **Phase마다 끝까지 돈다**: `docker compose up -d`와 명령 하나로 입구부터 그 Phase의 표와 점수판까지 나온다.
+- **Phase마다 끝까지 돈다**: 명령 하나로 입구부터 그 Phase의 표와 점수판까지 나온다.
+- **파일은 처음 쓰는 할 일과 함께 들어온다**: 레포에는 지금 할 일이 반드시 쓰는 파일과 폴더만 둔다. 빈 자리 파일(`.gitkeep`, 빈 `__init__.py`)이나 "나중에 쓸" 설정을 미리 두지 않는다. 할 일마다 무엇을 들이는지 아래 목록에 적는다.
 - **필요할 때 들인다**: 구성 요소(대사, Kafka, 스트림 소비자)는 앞 Phase에서 겪은 문제가 부를 때 들인다. 들이는 까닭은 ADR의 맥락에 겪은 문제로 적는다. 처리는 노트북 한 대에서 도는 DuckDB·Parquet·dbt로 하고 Spark는 쓰지 않는다(ADR-001).
 - **경계를 지킨다**: 착륙 구역부터 플랫폼이고, 대사도 플랫폼의 것이다(원천 ADR-007·008). 원천에는 재발행 요청 파일로만 말한다.
 - **스트림과 배치를 섞지 않는다**(Phase 4부터): 소비자 그룹·저장소·실행 주체를 따로 둔다. 정답과 같아야 하는 것은 배치가, 지금 상태는 스트림이 맡는다.
@@ -78,7 +84,7 @@ flowchart LR
 
 | Phase | 기간 | 만드는 것 | 배우는 것 | 끝날 때 보이는 문제 → 다음 Phase |
 | --- | --- | --- | --- | --- |
-| 0. 레포와 로컬 인프라 | 10/27, 11/10 정리 | 레포 뼈대, CI, 계약 사본, compose(10/27에는 Redpanda도, 11/10부터 Postgres·Airflow 3만), ADR-001~003 | 컨테이너 네트워크·볼륨, 계약 고정 | |
+| 0. 레포와 로컬 인프라 | 10/27, 11/10 정리 | 레포 뼈대, CI, ADR-001~003. 10/27에 깐 compose·계약 사본은 11/10에 비우고 처음 쓰는 할 일로 미뤘다 | 계약 고정, 무엇을 들이지 않을지 정하기 | |
 | 1. MVP 배치 | 11/11–11/18 | 착륙 구역 → bronze → silver(중복 제거, 72시간 되돌아보기) → 가용률 마트, 점수판, 일 단위 DAG, 재실행·백필, 실패·신선도 경보 | 끝까지 관통하는 최소 경로, 멱등 키, 이벤트 시각 처리, 운영 | 중복·늦음은 풀렸지만 **누락 때문에 가용률이 정답과 다르다** |
 | 2. 대사 | 11/19–11/23 | `seq` 빈 번호와 마감 집계로 누락 찾기, 재발행 요청 파일, 재발행분 받기 | 대사, 원천과 계약으로만 일하기 | 가용률 = 정답. 그런데 **지금 설비가 섰는지는 다음 날에야 안다** |
 | 3. 마트 넓히기와 배치 공개 | 11/24–11/29 | OEE, 계획 대비 실적, QCD, 지표 정의 문서, README·`v0.1.0` | 지표 정의를 문서로 합의하기 | (가치를 쌓는 Phase) |
@@ -102,19 +108,20 @@ flowchart LR
 - [x] 레포 뼈대, uv(Python 3.12)·ruff·pytest CI, develop 자동 머지 (chore/bootstrap) (Claude)
 - [x] compose(Redpanda·Console·토픽 여섯, Postgres·Airflow 3), 원천 `v0.3.0` 계약 사본과 CI 대조, ADR-001·002 (Claude)
 - [x] 11/10 정리: Kafka 쪽 걷어내기, 폴더 이름(`data/`, `scripts/`, `docs/specs/`·`docs/plans/`), ADR-003, 이 계획 (Claude)
+- [x] 11/10 비움: compose·Airflow·smoke DAG, 빈 `pipelines/`·`dbt/`, 계약 사본·대조 스크립트·테스트를 지움. CI는 lint만 (chore/fresh-start) (Claude)
 ### Phase 1 · MVP 배치
-- [ ] 착륙 구역의 `dt` 하나(`part-*.jsonl` 전부. 재발행분 `part-replay-*`도 같은 `dt`에 생긴다) → `data/bronze/dt=…/` Parquet, 같은 `dt`를 다시 돌리면 덮어씀, 줄의 원본·파일·줄 번호를 열로 남김 (feat/bronze) (직접. 시그니처·첫 테스트·5년치 데이터 준비는 Claude)
-- [ ] dbt-duckdb `stg_events`(`event_id`마다 가장 이른 도착 하나), 72시간 되돌아보기, 품질 테스트(착수 < 완료), ADR-004 (feat/silver) (직접. dbt 프로젝트 설정은 Claude)
+- [ ] 착륙 구역의 `dt` 하나(`part-*.jsonl` 전부. 재발행분 `part-replay-*`도 같은 `dt`에 생긴다) → `data/bronze/dt=…/` Parquet, 같은 `dt`를 다시 돌리면 덮어씀, 줄의 원본·파일·줄 번호를 열로 남김. 들이는 것: `pipelines/ingest/`, pytest와 CI test 단계 (feat/bronze) (직접. 시그니처·첫 테스트·5년치 데이터 준비는 Claude)
+- [ ] dbt-duckdb `stg_events`(`event_id`마다 가장 이른 도착 하나), 72시간 되돌아보기, 품질 테스트(착수 < 완료), ADR-004. 들이는 것: `dbt/`, 계약 사본 `contracts/`(그때의 원천 태그에서 복사)와 CI 대조, silver 열이 계약의 봉투와 맞는지 보는 테스트 (feat/silver) (직접. dbt 프로젝트 설정·계약 복사는 Claude)
 - [ ] 가용률 마트: 설비 down→up 구간, 작업장 묶음(가공·조립장·도크·선석)별. 같은 매크로를 정답 로그에도 돌림 (feat/mart-availability) (직접)
-- [ ] 점수판: 가용률 오차와 그것을 설명하는 중복·늦음·누락 수, 회고 한 줄 (feat/scoreboard) (계산은 직접, 배선·출력은 Claude)
-- [ ] 일 단위 DAG(bronze → dbt → 점수판), Asset으로 이어 걸기, DuckDB 단일 쓰기용 pool 1·`max_active_runs=1` (feat/dag) (직접. compose·Airflow 설정은 Claude)
+- [ ] 점수판: 가용률 오차와 그것을 설명하는 중복·늦음·누락 수, 회고 한 줄. 들이는 것: `pipelines/scoreboard/` (feat/scoreboard) (계산은 직접, 배선·출력은 Claude)
+- [ ] 일 단위 DAG(bronze → dbt → 점수판), Asset으로 이어 걸기, DuckDB 단일 쓰기용 pool 1·`max_active_runs=1`. 들이는 것: `docker-compose.yml`(Postgres·Airflow 3), `airflow/dags/` (feat/dag) (직접. compose·Airflow 설정은 Claude)
 - [ ] 신선도·행 수 감시와 실패·신선도 경보, **훈련**: 방출을 멈춰 경보가 울리는지 (feat/observability) (직접)
 - [ ] `airflow backfill create` 구간 백필, 백필 두 번 = 같은 결과, ADR-005 (feat/backfill) (직접)
 ### Phase 2 · 대사
 - [ ] 마감 집계 받기(착륙 구역의 manifest 줄), 개체별 `seq` 빈 번호와 `last_seq`로 끝 번호 누락, 마감 뒤 72시간 기다리기 (feat/reconcile) (직접)
 - [ ] `replay_request.json` 형식의 요청을 `data/requests/`에 쓰기, 착륙 구역으로 돌아온 재발행 받기, 점수판 완전성 0, ADR-006 (feat/replay-request) (직접)
 ### Phase 3 · 마트 넓히기와 배치 공개
-- [ ] 봉투 스키마 검증(`contracts/` 사본), 위반 줄은 격리 표(원본·사유·파일·줄 번호), **훈련**: 깨진 줄 주입 (feat/contract) (직접)
+- [ ] 봉투 스키마 검증(`contracts/` 사본), 위반 줄은 격리 표(원본·사유·파일·줄 번호), **훈련**: 깨진 줄 주입. 들이는 것: `jsonschema` 실행 의존성 (feat/contract) (직접)
 - [ ] `mart_oee`(설비 × 일), `mart_plan_vs_actual`, `mart_qcd`, 지표 정의를 dbt 문서에 (feat/marts) (직접)
 - [ ] README 실행법·구조·점수판·훈련 기록, `v0.1.0` (docs/gate) (Claude)
 ### Phase 4 · 실시간: Kafka와 스트림
@@ -165,7 +172,7 @@ flowchart LR
 | 블록 입력 양식과 지연 판정 | `shipbuilding-block-scheduler` | 6 | Phase 6 첫 할 일로 확인 |
 | 용접 불량 이벤트(QCD의 Q) | 시뮬레이터 | 선택 | 시뮬레이터 9단계 |
 
-원천은 `v0.5.0`까지 나와 플랫폼이 기다릴 것이 없다. 계약 스키마는 `v0.3.0`과 같아 `contracts/`는 그대로 둔다.
+원천은 `v0.5.0`까지 나와 플랫폼이 기다릴 것이 없다. 계약 사본은 `feat/silver`에서 그때의 원천 태그로 고정한다(`v0.3.0`~`v0.5.0`의 스키마는 같다).
 
 ## 결정 기록과 열린 질문
 
@@ -185,7 +192,7 @@ flowchart LR
 Phase 1
 - 일 단위 DAG는 무엇을 하루로 보나? `dt`는 가상 날짜라 재생 속도 없이 방출하면 5년치(약 1,826일)가 한꺼번에 생긴다. 가상 날짜마다 DAG run을 하나씩 두면 `max_active_runs=1`에 dbt 시작 비용이 겹쳐 백필 한 번이 몇 시간 걸린다. 시작안: DAG run 하나가 아직 처리하지 않은 닫힌 `dt`를 모두 처리하고, 백필은 `dt` 범위를 인자로 받는다. ADR-005에서 정한다.
 - `dt`가 닫힌 것을 DAG가 어떻게 아나? 방출기는 날짜 순서로 쓰고 닫힌 날짜 파일은 다시 쓰지 않는다(원천 `sim/io/writer.py`의 `PartitionedWriter`). 시작안: 다음 `dt` 디렉터리가 보이면 앞 `dt`를 닫힌 것으로 본다. 다만 재발행 서비스는 처리 시각의 `dt`(자정 직전이면 다음 날)에 `part-replay-*`를 만들 수 있어, 이 규칙이 오판할 수 있다. ADR-005에서 같이 정한다.
-- 점수판과 정답 쪽 가용률은 원천의 정답 로그(`../virtual-shipyard-simulator/out/truth`)를 읽는데, compose의 마운트는 `./data:/data` 하나라 Airflow 태스크 안에서는 보이지 않는다. 읽기 전용 마운트를 더할지(`TRUTH_DIR`), `data/truth/`로 복사할지 `feat/scoreboard` 전에 정한다.
+- 점수판과 정답 쪽 가용률은 원천의 정답 로그(`../virtual-shipyard-simulator/out/truth`)를 읽는데, 호스트에서 돌릴 때(`feat/scoreboard`)는 경로로 바로 읽지만, `feat/dag` 뒤 compose의 마운트가 `./data:/data` 하나면 Airflow 태스크 안에서는 보이지 않는다. 읽기 전용 마운트를 더할지(`TRUTH_DIR`), `data/truth/`로 복사할지 `feat/dag`에서 정한다.
 - `warehouse.duckdb`를 DAG가 쓰는 동안 다른 프로세스는 읽기 전용으로도 열 수 없다(DuckDB 파일 잠금). gold와 점수판을 DAG 끝에서 Parquet으로 내보내고 바깥은 그것만 읽게 할지 정한다.
 - 72시간보다 늦게 오는 이벤트가 있나? 있으면 72시간 되돌아보기로는 "늦음 모두 반영"을 지킬 수 없다. silver를 짜기 전에 정답 로그와 착륙 구역으로 `emitted_at` − `occurred_at`의 최댓값을 잰다.
 - 호선 금액과 비용 이벤트가 없어 QCD의 C는 공수(MH)로만 본다(Phase 3). 금액이 필요하면 시뮬레이터 계획에 요청으로 올린다.
