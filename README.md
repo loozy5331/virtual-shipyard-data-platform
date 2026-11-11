@@ -11,17 +11,20 @@
 
 ```
 docs/           계획(development-plan.md), adr/
-.github/        CI(lint), develop 자동 머지
+pipelines/      ingest/(착륙 구역 → bronze)
+tests/          pytest
+.github/        CI(ruff, pytest), develop 자동 머지
 ```
 
-레포에는 지금 할 일이 반드시 쓰는 파일만 둔다. 폴더는 처음 쓰는 할 일과 함께 생긴다: `pipelines/ingest/`·`data/`(Phase 1 `feat/bronze`), `dbt/`·`contracts/`(`feat/silver`), `pipelines/scoreboard/`(`feat/scoreboard`), `docker-compose.yml`·`airflow/`(`feat/dag`). 할 일과 들이는 것은 [계획](docs/development-plan.md)의 "Phase별 할 일"에 있다.
+레포에는 지금 할 일이 반드시 쓰는 파일만 둔다. 폴더는 처음 쓰는 할 일과 함께 생긴다: `dbt/`·`contracts/`(`feat/silver`), `pipelines/scoreboard/`(`feat/scoreboard`), `docker-compose.yml`·`airflow/`(`feat/dag`). 할 일과 들이는 것은 [계획](docs/development-plan.md)의 "Phase별 할 일"에 있다.
 
 ## 실행
 
-아직 실행할 것이 없다. Phase 1의 첫 할 일(`feat/bronze`)부터 착륙 구역으로 방출해 받는다.
+착륙 구역(`data/landing/`, git에 넣지 않음)으로 방출해 받는다. bronze 변환 `pipelines.ingest.bronze.ingest_dt`는 아직 명령줄이 없어 테스트로 돌린다.
 
 ```bash
-# 시뮬레이터 레포에서: 착륙 구역으로 방출(feat/bronze부터)
+# 시뮬레이터 레포에서: 정답 로그를 만들고 착륙 구역으로 방출
+uv run python -m sim --seed 0
 uv run python -m emitter --out-dir ../virtual-shipyard-data-platform/data/landing
 ```
 
@@ -33,8 +36,9 @@ uv run python -m emitter --out-dir ../virtual-shipyard-data-platform/data/landin
 ## 개발
 
 ```bash
-uv sync              # Python 3.12, 개발 도구(ruff)
+uv sync              # Python 3.12, 개발 도구(ruff, pytest)
 uv run ruff check .
+uv run pytest
 ```
 
-PR은 `develop`으로 보내고, CI(`test` job, 지금은 lint만)가 통과하면 자동으로 머지된다. pytest는 `feat/bronze`에서 더한다.
+PR은 `develop`으로 보내고, CI(`test` job: ruff, pytest)가 통과하면 자동으로 머지된다.
