@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 .env
 .playwright-mcp/
+data/
+.pytest_cache/
+.vscode/

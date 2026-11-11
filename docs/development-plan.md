@@ -4,7 +4,7 @@
 
 시뮬레이터가 내는 노이즈 섞인 이벤트를 받아, 정답과 똑같이 복원한 기록과 OEE·리드타임 마트를 만든다. 파일로 받는 작은 배치에서 시작하고, 겪은 문제가 다음 구성 요소를 부를 때마다 Phase를 하나씩 더한다. 11/29 배치 공개, 12/13 스트림 공개, 12/20 완료.
 
-**진행 상황**: Phase 0 완료. 11/10에 입구를 Kafka에서 파일로 되돌리고 레포를 비웠다([ADR-002](adr/002-file-landing-zone.md)). 다음은 Phase 1의 `feat/bronze`.
+**진행 상황**: Phase 1 진행 중. 11/11 `feat/bronze` 완료(착륙 구역 → bronze Parquet). 다음은 `feat/silver`.
 
 ## 목표: 최종 형태
 
@@ -39,7 +39,7 @@ flowchart LR
 - **필요할 때 들인다**: 구성 요소는 앞 Phase에서 겪은 문제가 부를 때, 파일은 처음 쓰는 할 일과 함께 들어온다. 빈 자리 파일을 미리 두지 않는다. 할 일의 설계·작업 계획 문서는 끝나면 지우고, 결정은 ADR과 이 문서에 남긴다. Spark는 쓰지 않는다(ADR-001).
 - **경계를 지킨다**: 착륙 구역부터 플랫폼이다. 원천에는 재발행 요청 파일로만 말한다.
 - **세 가지를 남긴다**: Phase마다 먼저 실패하는 테스트, ADR, 회고 한 줄.
-- **누가 짜나**: 핵심 로직과 장애 훈련은 직접 `(직접)`, 밑작업·배선·문서·리뷰는 Claude `(Claude)`.
+- **누가 짜나**: 핵심 로직과 장애 훈련은 직접 `(직접)`, 밑작업·배선·문서·리뷰는 Claude `(Claude)`. 먼저 실패하는 테스트는 `feat/silver`부터 직접 쓰고, Claude는 시그니처·fixture를 준비하고 테스트를 리뷰한다.
 
 ## Phase 지도
 
@@ -68,7 +68,7 @@ flowchart LR
 
 할 일 하나 ≈ 하루. 괄호는 브랜치, "들임"은 그 할 일과 함께 레포에 들어오는 것이다.
 
-- [ ] `dt` 하나의 `part-*.jsonl` 전부 → `data/bronze/dt=…/` Parquet, 다시 돌리면 덮어씀, 원본 줄·파일·줄 번호를 열로. 들임: `pipelines/ingest/`, pytest, gitignore의 `data/`·`.pytest_cache/` (feat/bronze) (직접. 시그니처·첫 테스트·데이터 준비는 Claude)
+- [x] `dt` 하나의 `part-*.jsonl` 전부 → `data/bronze/dt=…/` Parquet, 다시 돌리면 덮어씀, 원본 줄·파일·줄 번호를 열로. 들임: `pipelines/ingest/`, pytest, gitignore의 `data/`·`.pytest_cache/` (feat/bronze) (직접. 시그니처·첫 테스트·데이터 준비는 Claude)
 - [ ] `stg_events`(`event_id`마다 가장 이른 도착), 72시간 되돌아보기, 품질 테스트, silver·늦음 ADR. 들임: `dbt/`, `contracts/`와 CI 대조, 계약 사본 ADR, silver 열 ↔ 계약 테스트 (feat/silver) (직접)
 - [ ] 가용률 마트: 설비 down→up, 작업장 묶음별. 같은 매크로를 정답 로그에도 (feat/mart-availability) (직접)
 - [ ] 점수판: 가용률 오차 + 중복·늦음·누락 수, 회고 한 줄. 들임: `pipelines/scoreboard/` (feat/scoreboard) (계산은 직접)
@@ -91,7 +91,7 @@ flowchart LR
 **열린 질문**
 - DAG run 하나가 `dt` 하나인가, 닫힌 `dt` 전부인가? 5년치(약 1,826일)를 run 하나씩 돌리면 백필이 몇 시간 걸린다. 운영·백필 ADR에서.
 - `dt` 닫힘을 무엇으로 아나? 시작안: 다음 `dt` 폴더가 보이면 닫힘. 재발행 파일이 처리 날짜 `dt`에 생겨 오판할 수 있다. 운영·백필 ADR에서.
-- 72시간보다 늦게 오는 이벤트가 있나? silver 전에 `emitted_at` − `occurred_at` 최댓값을 잰다.
+- ~~72시간보다 늦게 오는 이벤트가 있나?~~ 없다. 원천 5년(시드 0) 방출분에서 `emitted_at` − `occurred_at` 최댓값은 45.3시간이다(11/11 잼). silver·늦음 ADR의 근거로 쓴다.
 - `warehouse.duckdb` 잠금: DAG가 쓰는 동안 다른 프로세스가 못 연다. gold·점수판을 Parquet으로 내보낼지.
 - 정답 로그를 Airflow 태스크에서 어떻게 읽나(마운트 또는 복사). `feat/dag`에서.
 

@@ -4,10 +4,15 @@ version = "0.0.1"
 description = "가상 조선소 시뮬레이터의 이벤트를 받아 마트까지 만드는 데이터 플랫폼"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "duckdb>=2.0.0",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+]
 
 [dependency-groups]
 dev = [
+    "pytest>=9.2.0",
     "ruff>=0.8",
 ]
 
@@ -20,3 +25,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
