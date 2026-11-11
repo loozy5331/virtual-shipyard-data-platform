@@ -44,8 +44,8 @@ def _land(landing: Path, name: str, lines: list[str], dt: str = DT) -> None:
 def _bronze(bronze: Path, dt: str = DT) -> list[tuple[str, str, int]]:
     parquet_files = list((bronze / f"dt={dt}").glob("*.parquet"))
     if not parquet_files:
-        return []   
-    
+        return []
+
     rows = duckdb.sql(
         f"select raw, source_file, line_no from read_parquet('{bronze}/dt={dt}/*.parquet')"
     ).fetchall()
@@ -118,6 +118,7 @@ def test_empty_landing_dir(tmp_path):
     assert _bronze(bronze) == []
     assert bronze.exists()
 
+
 def test_invalid_dt(tmp_path):
     landing, bronze = tmp_path / "landing", tmp_path / "bronze"
     # format
@@ -131,6 +132,7 @@ def test_invalid_dt(tmp_path):
     with pytest.raises(ValueError, match="day is out of range for month"):
         ingest_dt(landing, bronze, "2029-02-33")
 
+
 def test_remove_landing_file(tmp_path):
     landing, bronze = tmp_path / "landing", tmp_path / "bronze"
     _land(landing, "part-0.jsonl", [_event(1), _event(2)])
@@ -143,5 +145,3 @@ def test_remove_landing_file(tmp_path):
 
     assert n == 0
     assert _bronze(bronze) == []
-    
-    

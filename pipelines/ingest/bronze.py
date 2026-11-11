@@ -3,6 +3,7 @@
 입력: landing_root/dt=YYYY-MM-DD/part-*.jsonl(방출분 part-0, 재발행분 part-replay-*)
 출력: bronze_root/dt=YYYY-MM-DD/*.parquet, 한 행 = 원본 한 줄
 """
+
 import os
 from datetime import date
 from pathlib import Path
@@ -37,11 +38,11 @@ def ingest_dt(landing_root: Path, bronze_root: Path, dt: str) -> int:
 
     for file_path in landing_dir.glob("part-*.jsonl"):
         # read jsonl
-        dataset = [] # (raw, source_file, line_no)
+        dataset = []  # (raw, source_file, line_no)
         with open(file_path, encoding="utf-8") as f:
             lines = f.readlines()
             for cnt, line in enumerate(lines, start=1):
-                dataset.append((line.rstrip('\n'), file_path.name, cnt))
+                dataset.append((line.rstrip("\n"), file_path.name, cnt))
                 line_cnt += 1
 
         # write to parquet
