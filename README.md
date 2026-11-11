@@ -14,6 +14,7 @@ docs/           계획(development-plan.md), adr/
 pipelines/      ingest/(착륙 구역 → bronze)
 tests/          pytest
 .github/        CI(ruff, pytest), develop 자동 머지
+.pre-commit-config.yaml  커밋 전 ruff
 ```
 
 레포에는 지금 할 일이 반드시 쓰는 파일만 둔다. 폴더는 처음 쓰는 할 일과 함께 생긴다: `dbt/`·`contracts/`(`feat/silver`), `pipelines/scoreboard/`(`feat/scoreboard`), `docker-compose.yml`·`airflow/`(`feat/dag`). 할 일과 들이는 것은 [계획](docs/development-plan.md)의 "Phase별 할 일"에 있다.
@@ -36,9 +37,11 @@ uv run python -m emitter --out-dir ../virtual-shipyard-data-platform/data/landin
 ## 개발
 
 ```bash
-uv sync              # Python 3.12, 개발 도구(ruff, pytest)
+uv sync                    # Python 3.12, 개발 도구(ruff, pytest, pre-commit)
+uv run pre-commit install  # 처음 한 번: 커밋 전에 ruff check --fix·ruff format
 uv run ruff check .
+uv run ruff format --check .
 uv run pytest
 ```
 
-PR은 `develop`으로 보내고, CI(`test` job: ruff, pytest)가 통과하면 자동으로 머지된다.
+PR은 `develop`으로 보내고, CI(`test` job: ruff check·format, pytest)가 통과하면 자동으로 머지된다.
